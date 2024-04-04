@@ -1,0 +1,79 @@
+<!-- index.html (Frontend) -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR Search System</title>
+    <style>
+        #imageContainer {
+            position: relative;
+            display: inline-block;
+        }
+
+        .highlightedArea {
+            position: absolute;
+            border: 2px solid rgba(255, 0, 0, 0.5);
+            pointer-events: auto;
+            cursor: pointer;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>OCR Search System</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="file" id="fileInput">
+        <button type="submit">Upload Image</button>
+    </form>
+    <div id="imageContainer"></div>
+
+    <script>
+        $(document).ready(function() {
+            $('#uploadForm').submit(async function(event) {
+                event.preventDefault();
+                
+                const fileInput = $('#fileInput')[0];
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                const imageContainer = $('#imageContainer');
+                imageContainer.html(`<img src="${URL.createObjectURL(fileInput.files[0])}" id="uploadedImage">`);
+                
+                const uploadedImage = $('#uploadedImage');
+                uploadedImage.on('load', function() {
+                    const imageWidth = uploadedImage.width();
+                    const imageHeight = uploadedImage.height();
+                    
+                    for (const area of data.textAreas) {
+                      // if text is blank, skip, also add the trimmed text to the data
+                      if (area.text.trim() !== '') {
+                        const div = $('<div></div>');
+                        div.addClass('highlightedArea');
+                        div.css({
+                            left: `${(area.left / imageWidth) * 100}%`,
+                            top: `${(area.top / imageHeight) * 100}%`,
+                            width: `${(area.width / imageWidth) * 100}%`,
+                            height: `${(area.height / imageHeight) * 100}%`
+                        });
+                        div.data('text', area.text);
+                        imageContainer.append(div);
+                      }
+                    }
+                });
+            });
+
+            $('#imageContainer').on('click', '.highlightedArea', function() {
+                alert($(this).data('text'));
+            });
+        });
+    </script>
+</body>
+</html>
